@@ -4,6 +4,7 @@ import { fetchGitHubData } from './api/github';
 import { fetchStackExchangeData } from './api/stackexchange';
 import { fetchNPMData } from './api/npm';
 import { fetchPyPIData } from './api/pypi';
+import { fetchReport } from './api/openai';
 
 export interface CareerInput {
   jobTitle: string;
@@ -20,6 +21,12 @@ export interface AnalysisResult {
   overallScore: number;
   skills: { name: string; score: number; marketAvg: number }[];
   sources: string[];
+}
+
+export interface ReportData {
+  summary: string;
+  skillInsights: { name: string; analysis: string }[];
+  roadmap: { month3: string[]; month6: string[]; month12: string[] };
 }
 
 const initialInput: CareerInput = {
@@ -70,6 +77,8 @@ export function useAppState() {
   const [lang, setLang] = useState<Lang>('ko');
   const [careerInput, setCareerInput] = useState<CareerInput>(initialInput);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [report, setReport] = useState<ReportData | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const generateAnalysis = useCallback(async (input: CareerInput): Promise<AnalysisResult> => {
     const skillList = input.skills.split(',').map(s => s.trim()).filter(Boolean);
@@ -136,6 +145,17 @@ export function useAppState() {
     };
   }, []);
 
+  const generateReport = useCallback(async () => {
+    if (!analysis || report || reportLoading) return;
+    setReportLoading(true);
+    try {
+      const data = await fetchReport(careerInput, analysis);
+      if (data) setReport(data);
+    } finally {
+      setReportLoading(false);
+    }
+  }, [careerInput, analysis, report, reportLoading]);
+
   return {
     lang,
     setLang,
@@ -144,5 +164,9 @@ export function useAppState() {
     analysis,
     setAnalysis,
     generateAnalysis,
+    report,
+    setReport,
+    reportLoading,
+    generateReport,
   };
 }

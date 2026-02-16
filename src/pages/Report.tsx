@@ -1,17 +1,25 @@
+import { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Share2, Download, Mail, Info } from 'lucide-react';
+import { Share2, Download, Mail, Info, Loader2 } from 'lucide-react';
 import { ScoreBar } from '../components/ScoreBar';
 import type { Translations } from '../i18n';
-import type { AnalysisResult, CareerInput } from '../store';
+import type { AnalysisResult, CareerInput, ReportData } from '../store';
 
 interface Props {
   tr: Translations;
   analysis: AnalysisResult | null;
   careerInput: CareerInput;
+  report: ReportData | null;
+  reportLoading: boolean;
+  generateReport: () => Promise<void>;
 }
 
-export function Report({ tr, analysis, careerInput }: Props) {
+export function Report({ tr, analysis, careerInput, report, reportLoading, generateReport }: Props) {
   if (!analysis) return <Navigate to="/start" replace />;
+
+  useEffect(() => {
+    generateReport();
+  }, [generateReport]);
 
   const gapSkills = analysis.skills.map(s => ({
     ...s,
@@ -27,6 +35,45 @@ export function Report({ tr, analysis, careerInput }: Props) {
     return { text: 'Weak', color: 'text-weak' };
   }
   const level = getOverallLevel();
+
+  // Static fallback roadmap phases
+  const staticPhases = [
+    {
+      period: tr.report.month3,
+      color: 'border-primary',
+      bg: 'bg-primary/5',
+      items: needsImprovement.length > 0
+        ? needsImprovement.map(s => `${s.name}: Gap ${s.gap} - Intensive learning recommended`)
+        : ['Current skills are competitive. Focus on deepening expertise.'],
+    },
+    {
+      period: tr.report.month6,
+      color: 'border-accent',
+      bg: 'bg-accent/5',
+      items: strategicPivot.length > 0
+        ? strategicPivot.map(s => `${s.name}: Consider strategic transition (Gap ${s.gap})`)
+        : ['Build portfolio projects with current tech stack.', 'Contribute to open source projects.'],
+    },
+    {
+      period: tr.report.month12,
+      color: 'border-strong',
+      bg: 'bg-strong/5',
+      items: [
+        careerInput.goal ? `Target: ${careerInput.goal}` : 'Set long-term career direction.',
+        'Establish thought leadership in core domain.',
+        'Mentor junior developers.',
+      ],
+    },
+  ];
+
+  // AI-powered roadmap phases (when report is available)
+  const aiPhases = report ? [
+    { period: tr.report.month3, color: 'border-primary', bg: 'bg-primary/5', items: report.roadmap.month3 },
+    { period: tr.report.month6, color: 'border-accent', bg: 'bg-accent/5', items: report.roadmap.month6 },
+    { period: tr.report.month12, color: 'border-strong', bg: 'bg-strong/5', items: report.roadmap.month12 },
+  ] : null;
+
+  const roadmapPhases = aiPhases || staticPhases;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12 md:py-20">
@@ -70,13 +117,29 @@ export function Report({ tr, analysis, careerInput }: Props) {
             <p className="text-xs text-slate-400">{tr.preview.demandLevel}</p>
           </div>
         </div>
+        {reportLoading && (
+          <div className="flex items-center gap-2 text-slate-300 text-sm mt-2">
+            <Loader2 size={16} className="animate-spin" />
+            AI 분석 생성 중...
+          </div>
+        )}
+        {report && (
+          <p className="text-sm text-slate-300 leading-relaxed mt-2">{report.summary}</p>
+        )}
       </section>
 
       {/* Skill Analysis */}
       <section className="bg-white rounded-2xl p-6 border border-slate-100 mb-6">
         <h2 className="text-lg font-bold text-slate-900 mb-4">{tr.report.skillAnalysis}</h2>
         {analysis.skills.map((s, i) => (
-          <ScoreBar key={i} label={s.name} score={s.score} />
+          <div key={i}>
+            <ScoreBar label={s.name} score={s.score} />
+            {report?.skillInsights?.find(si => si.name === s.name) && (
+              <p className="text-xs text-slate-500 ml-1 -mt-1 mb-3">
+                {report.skillInsights.find(si => si.name === s.name)!.analysis}
+              </p>
+            )}
+          </div>
         ))}
       </section>
 
@@ -104,35 +167,14 @@ export function Report({ tr, analysis, careerInput }: Props) {
       {/* Career Development Roadmap */}
       <section className="bg-white rounded-2xl p-6 border border-slate-100 mb-6">
         <h2 className="text-lg font-bold text-slate-900 mb-6">{tr.report.roadmap}</h2>
+        {reportLoading && !report && (
+          <div className="flex items-center gap-2 text-slate-400 text-sm mb-4">
+            <Loader2 size={16} className="animate-spin" />
+            AI 로드맵 생성 중...
+          </div>
+        )}
         <div className="space-y-6">
-          {[
-            {
-              period: tr.report.month3,
-              color: 'border-primary',
-              bg: 'bg-primary/5',
-              items: needsImprovement.length > 0
-                ? needsImprovement.map(s => `${s.name}: Gap ${s.gap} - Intensive learning recommended`)
-                : ['Current skills are competitive. Focus on deepening expertise.'],
-            },
-            {
-              period: tr.report.month6,
-              color: 'border-accent',
-              bg: 'bg-accent/5',
-              items: strategicPivot.length > 0
-                ? strategicPivot.map(s => `${s.name}: Consider strategic transition (Gap ${s.gap})`)
-                : ['Build portfolio projects with current tech stack.', 'Contribute to open source projects.'],
-            },
-            {
-              period: tr.report.month12,
-              color: 'border-strong',
-              bg: 'bg-strong/5',
-              items: [
-                careerInput.goal ? `Target: ${careerInput.goal}` : 'Set long-term career direction.',
-                'Establish thought leadership in core domain.',
-                'Mentor junior developers.',
-              ],
-            },
-          ].map((phase, i) => (
+          {roadmapPhases.map((phase, i) => (
             <div key={i} className={`border-l-4 ${phase.color} ${phase.bg} rounded-r-xl p-4`}>
               <h3 className="font-bold text-sm text-slate-900 mb-2">{phase.period}</h3>
               <ul className="space-y-1">
@@ -155,6 +197,9 @@ export function Report({ tr, analysis, careerInput }: Props) {
           {analysis.sources.map((s, i) => (
             <span key={i} className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">{s}</span>
           ))}
+          {report && (
+            <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full">OpenAI GPT-4o-mini</span>
+          )}
         </div>
       </section>
 

@@ -58,7 +58,14 @@ function App() {
               path="/report"
               element={
                 <ProtectedRoute>
-                  <Report tr={tr} analysis={state.analysis} careerInput={state.careerInput} />
+                  <Report
+                    tr={tr}
+                    analysis={state.analysis}
+                    careerInput={state.careerInput}
+                    report={state.report}
+                    reportLoading={state.reportLoading}
+                    generateReport={state.generateReport}
+                  />
                 </ProtectedRoute>
               }
             />
