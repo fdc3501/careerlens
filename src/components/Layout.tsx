@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Globe, Menu, X } from 'lucide-react';
+import { Globe, Menu, X, LogOut, User } from 'lucide-react';
 import { useState } from 'react';
 import type { Lang, Translations } from '../i18n';
+import { useAuth } from '../auth/AuthContext';
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,6 +15,7 @@ interface LayoutProps {
 export function Layout({ children, lang, setLang, tr }: LayoutProps) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
   const isHome = location.pathname === '/';
 
   return (
@@ -46,6 +48,25 @@ export function Layout({ children, lang, setLang, tr }: LayoutProps) {
               <Globe size={16} />
               {lang === 'ko' ? 'EN' : '한국어'}
             </button>
+            {user ? (
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1 text-slate-600 text-sm">
+                  <User size={14} />
+                  {user.email?.split('@')[0]}
+                </span>
+                <button
+                  onClick={signOut}
+                  className="flex items-center gap-1 text-slate-500 hover:text-red-500 bg-transparent border-none cursor-pointer text-sm"
+                >
+                  <LogOut size={14} />
+                  {tr.auth.logout}
+                </button>
+              </div>
+            ) : (
+              <Link to="/login" className="text-slate-600 hover:text-primary no-underline text-sm">
+                {tr.auth.login}
+              </Link>
+            )}
           </nav>
 
           <button
@@ -67,6 +88,19 @@ export function Layout({ children, lang, setLang, tr }: LayoutProps) {
               <Globe size={16} />
               {lang === 'ko' ? 'English' : '한국어'}
             </button>
+            {user ? (
+              <button
+                onClick={() => { signOut(); setMenuOpen(false); }}
+                className="flex items-center gap-1 text-slate-500 bg-transparent border-none cursor-pointer text-sm py-1"
+              >
+                <LogOut size={16} />
+                {tr.auth.logout}
+              </button>
+            ) : (
+              <Link to="/login" className="text-slate-600 no-underline py-1" onClick={() => setMenuOpen(false)}>
+                {tr.auth.login}
+              </Link>
+            )}
           </div>
         )}
       </header>
