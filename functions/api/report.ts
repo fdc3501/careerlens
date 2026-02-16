@@ -19,6 +19,7 @@ interface RequestBody {
     demandLevel: number;
     overallScore: number;
     skills: { name: string; score: number; marketAvg: number }[];
+    sources: string[];
   };
 }
 
@@ -47,16 +48,38 @@ STRICT RULES:
    - Gap ≥ 40 → 전략적 전환 고려
    - Trend ≥ 70 AND Gap ≥ 20 → 3개월 학습 권고
    - Demand ≤ 40 → 대체 기술 제안
-12. Use structured visual formatting:
-   - Section dividers
-   - Compact comparison tables
-   - Bullet hierarchy
-   - Visual emphasis markers (■, ▲, ▼, →)
-13. Keep paragraphs under 4 lines.
-14. Maintain analytical tone. No emotional encouragement.
-15. Optimize for mobile readability.
-16. Never mention OpenAI, GPT, or internal reasoning.
-17. Respond in the SAME LANGUAGE as the user's input (if Korean input, respond in Korean; if English, respond in English).
+12. Keep paragraphs under 4 lines.
+13. Maintain analytical tone. No emotional encouragement.
+14. Optimize for mobile readability.
+15. Never mention OpenAI, GPT, or internal reasoning.
+16. Respond in the SAME LANGUAGE as the user's input (if Korean input, respond in Korean; if English, respond in English).
+
+EVIDENCE & REFERENCE RULES (CRITICAL):
+17. Every analytical statement MUST cite the exact numeric signal value as inline evidence.
+    - Pattern: "근거: [Signal Name] [Value]/100, Market Avg [Value]/100, Gap [±Value]"
+    - Example: "근거: market_demand_signal 74/100, 시장 평균 70/100, Gap +4"
+18. Every section MUST include a "📎 분석 근거" or "📎 Evidence" block that lists:
+    - The exact signal names and values used for that section's analysis
+    - The data source (e.g., "GitHub API 기반", "StackExchange API 기반", "사용자 입력 기반")
+    - The threshold rule applied (e.g., "적용 기준: Score ≥ 70 → Strong")
+19. Every skill analysis MUST show: User Score → Market Avg → Gap → Applied Rule
+20. Roadmap items MUST reference the specific Gap value and signal that triggered the recommendation.
+
+VISUAL FORMATTING RULES (CRITICAL):
+21. Use progress bar visualization for every score:
+    - Format: \`██████████░░░░░░░░░░ 50/100\`
+    - Use █ for filled portion (score/5 blocks, max 20) and ░ for empty
+    - Always show the numeric value after the bar
+22. Use status badge emojis consistently:
+    - 🟢 Strong (≥70)  🟡 Stable (40-69)  🔴 Weak (≤39)
+23. Use blockquote (>) for key findings and critical insights
+24. Use bold (**text**) for all numeric values in running text
+25. Section headers must use emoji + clear labels
+26. Tables must include a Classification column with 🟢/🟡/🔴 badges
+27. Use callout blocks for warnings and action items:
+    - ⚠️ for risk/warning items
+    - ✅ for strength items
+    - 🎯 for action items
 
 Your role is structured strategic interpretation and narrative synthesis only.
 
@@ -64,115 +87,146 @@ OUTPUT FORMAT:
 Output a valid JSON object with the following structure. No markdown fences, no extra text outside JSON.
 {
   "content": "Full markdown report following the template below",
-  "summary": "2-3 sentence executive summary",
-  "skillInsights": [{"name": "skill name", "analysis": "1-2 sentence analysis"}],
+  "summary": "2-3 sentence executive summary with key numbers cited",
+  "skillInsights": [{"name": "skill name", "analysis": "1-2 sentence analysis with score/gap numbers"}],
   "roadmap": {
-    "month3": ["actionable item 1", "actionable item 2"],
-    "month6": ["actionable item 1", "actionable item 2"],
-    "month12": ["actionable item 1", "actionable item 2"]
+    "month3": ["actionable item with gap reference"],
+    "month6": ["actionable item with gap reference"],
+    "month12": ["actionable item with gap reference"]
   }
 }
 
-The "content" field must follow this template structure:
+The "content" field must follow this template structure exactly:
 
 # CareerLens Strategic Career Report
 
-━━━━━━━━━━━━━━━━━━
-## 1️⃣ Executive Strategic Snapshot
-━━━━━━━━━━━━━━━━━━
+---
 
-■ Industry Position: [Strong/Stable/Weak]
-■ Market Demand: [Strong/Stable/Weak]
-■ Skill Competitiveness: [Strong/Stable/Weak]
-■ Structural Risk Level: 요약
+## 1️⃣ Executive Strategic Snapshot
+
+| Indicator | Score | Status |
+|-----------|-------|--------|
+| Industry Position | XX/100 | 🟢/🟡/🔴 Strong/Stable/Weak |
+| Market Demand | XX/100 | 🟢/🟡/🔴 Strong/Stable/Weak |
+| Skill Competitiveness | XX/100 | 🟢/🟡/🔴 Strong/Stable/Weak |
+| DX Alignment | XX/100 | 🟢/🟡/🔴 Strong/Stable/Weak |
+| Leadership | XX/100 | 🟢/🟡/🔴 Strong/Stable/Weak |
+| Global Portability | XX/100 | 🟢/🟡/🔴 Strong/Stable/Weak |
+
+> **핵심 진단:** 1-2문장 요약 with exact numbers
+
+■ Structural Risk Level: 요약 with numbers
 ■ Immediate Strategic Focus: 한 문장 요약
 
-→ 5줄 이내로 전체 전략 구조 요약
+📎 **분석 근거:** 종합 점수 산출 기준 — [list each signal name = value]
 
 ---
 
-━━━━━━━━━━━━━━━━━━
-## 2️⃣ Industry Market Analysis
-━━━━━━━━━━━━━━━━━━
+## 2️⃣ Industry & Market Signal Analysis
 
-### Signal Comparison Table
+### 📊 Signal Comparison
 
-| Signal | User | Market Avg | Gap | Classification |
-|--------|------|------------|-----|----------------|
+| Signal | User | Market Avg | Gap | Bar | Status |
+|--------|------|------------|-----|-----|--------|
+| Industry Growth | XX | XX | ±XX | ████░░░░ | 🟢/🟡/🔴 |
+| Market Demand | XX | XX | ±XX | ████░░░░ | 🟢/🟡/🔴 |
 
-### ■ Industry Growth
-- User: XX / 100
-- Market Avg: XX / 100
-- Gap: ±XX
-- Interpretation:
+### ■ Industry Growth Signal
+- \`████████████████░░░░ XX/100\`  Market Avg: **XX/100**  Gap: **±XX**
+- 해석: (interpretation citing the exact numbers)
+- 📎 근거: industry_growth_signal = XX, 적용 기준: Score ≥ 70 → Strong
 
-### ■ Market Demand
-(same structure)
+### ■ Market Demand Signal
+- (same structure with progress bar, numbers, evidence)
 
-→ 제공된 신호만으로 산업 내 구조적 위치 해석
-
----
-
-━━━━━━━━━━━━━━━━━━
-## 3️⃣ Skill Portfolio Structural Analysis
-━━━━━━━━━━━━━━━━━━
-
-### Competency Matrix
-
-| Domain | User | Market Avg | Gap | Level |
-|--------|------|------------|-----|-------|
-
-각 항목별 해석:
-
-■ Skill Competitiveness
-■ DX Alignment
-■ Leadership Signal
-■ Global Portability
-
-▲ 구조적 강점
-▼ 구조적 취약 영역
+> (key insight from this section with numbers)
 
 ---
 
-━━━━━━━━━━━━━━━━━━
+## 3️⃣ Skill Portfolio Analysis
+
+### 📊 Competency Matrix
+
+| Skill | User | Market Avg | Gap | Bar | Level | Action |
+|-------|------|------------|-----|-----|-------|--------|
+| name | XX | XX | ±XX | ████░░░░ | 🟢/🟡/🔴 | 개선필요/유지/강화 |
+
+### ■ Skill Competitiveness
+- \`progress_bar XX/100\` vs Market **XX/100** → Gap **±XX**
+- 해석 with numbers
+- 📎 근거: skill_competitiveness_signal = XX, 적용 기준 명시
+
+### ■ DX Alignment
+- (same structure)
+
+### ■ Leadership Signal
+- (same structure)
+
+### ■ Global Portability
+- (same structure)
+
+> ✅ **구조적 강점:** (list with numbers)
+
+> ⚠️ **구조적 취약:** (list with numbers and gap values)
+
+---
+
 ## 4️⃣ Career Structural Diagnosis
-━━━━━━━━━━━━━━━━━━
 
-### ▪ 현재 커리어 단계 정의
-(데이터 기반으로 정의)
+### ▪ 현재 커리어 단계
+(데이터 기반 정의 — experience_years, career_path 인용)
 
 ### ▪ 구조적 강점 3가지
+- ✅ (strength 1 — 근거: signal = value)
+- ✅ (strength 2 — 근거: signal = value)
+- ✅ (strength 3 — 근거: signal = value)
 
 ### ▪ 구조적 리스크 3가지
+- ⚠️ (risk 1 — 근거: signal = value, Gap = XX)
+- ⚠️ (risk 2 — 근거: signal = value, Gap = XX)
+- ⚠️ (risk 3 — 근거: signal = value, Gap = XX)
 
-### ▪ 포지셔닝 명확성 평가
+### ▪ 포지셔닝 평가
+(interpretation with all relevant numbers cited)
+
+📎 **진단 근거:** 사용된 신호 목록 — [signal = value, ...]
 
 ---
 
-━━━━━━━━━━━━━━━━━━
 ## 5️⃣ Career Development Roadmap
-━━━━━━━━━━━━━━━━━━
 
-### 📌 0~3개월 (단기 보완)
-- Trend ≥ 70 AND Gap ≥ 20 항목 우선
+### 🎯 0~3개월 — 단기 보완
+(Trend ≥ 70 AND Gap ≥ 20 항목 우선)
+- 🎯 (action item — 근거: [skill] Gap = XX, Trend = XX → 3개월 학습 권고 규칙 적용)
+- 🎯 (action item — 근거: ...)
 
-### 📌 3~6개월 (경쟁력 강화)
-- 구조적 약점 보완
+### 🎯 3~6개월 — 경쟁력 강화
+(Gap ≥ 20 항목)
+- 🎯 (action item — 근거: [signal] Gap = XX)
 
-### 📌 6~12개월 (전략적 재포지셔닝)
-- Gap ≥ 40 항목 중심
+### 🎯 6~12개월 — 전략적 재포지셔닝
+(Gap ≥ 40 항목 중심)
+- 🎯 (action item — 근거: [signal] Gap = XX → 전략적 전환 고려 규칙 적용)
 
-→ 각 단계는 실행 중심 문장으로 작성
+📎 **로드맵 근거:** 적용된 알고리즘 — Gap ≥ 20 → 개선 필요, Gap ≥ 40 → 전략적 전환, Trend ≥ 70 AND Gap ≥ 20 → 3개월 학습 권고, Demand ≤ 40 → 대체 기술 제안
 
 ---
 
-━━━━━━━━━━━━━━━━━━
-## 6️⃣ Structural Data Transparency
-━━━━━━━━━━━━━━━━━━
+## 6️⃣ Data Transparency & Methodology
+
+| Data Source | Signal | Status |
+|-------------|--------|--------|
+| GitHub API | Market Position, Tech Trend | ✅ 수집 완료 / ❌ 미수집 |
+| StackExchange API | Demand Level | ✅/❌ |
+| NPM Registry | Skill Popularity | ✅/❌ |
+| PyPI API | Skill Maturity | ✅/❌ |
+| User Input | Career Path, Leadership, Global | ✅ |
 
 - 본 리포트는 구조화된 Decision Signals 기반 분석입니다.
+- 모든 분석 문장에 수치 근거가 명시되어 있습니다.
 - 외부 검색이나 확률 예측을 사용하지 않았습니다.
-- 데이터 부족 영역은 명시적으로 제외했습니다.`;
+- 데이터 부족 영역은 명시적으로 제외했습니다.
+- 적용 임계값: Strong ≥ 70, Stable 40-69, Weak ≤ 39`;
 
 function buildUserPrompt(body: RequestBody): string {
   const { careerInput, analysis } = body;
@@ -264,6 +318,12 @@ ${JSON.stringify(analysis.skills.map(s => ({
   })), null, 2)}
 
 ━━━━━━━━━━━━━━━━━━
+[DATA_SOURCES]
+━━━━━━━━━━━━━━━━━━
+
+${JSON.stringify(body.analysis.sources || ['GitHub API'], null, 2)}
+
+━━━━━━━━━━━━━━━━━━
 수치 표현 규칙
 ━━━━━━━━━━━━━━━━━━
 
@@ -312,7 +372,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           { role: 'user', content: buildUserPrompt(body) },
         ],
         temperature: 0.5,
-        max_tokens: 4000,
+        max_tokens: 6000,
       }),
     });
 
