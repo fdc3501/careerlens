@@ -11,6 +11,7 @@ import { Upload } from './pages/Upload';
 import { Preview } from './pages/Preview';
 import { Report } from './pages/Report';
 import { Login } from './pages/Login';
+import { MyPage } from './pages/MyPage';
 import { Terms } from './pages/Terms';
 import { Privacy } from './pages/Privacy';
 import { Refund } from './pages/Refund';
@@ -62,6 +63,14 @@ function App() {
               }
             />
             <Route path="/login" element={<Login tr={tr} />} />
+            <Route
+              path="/mypage"
+              element={
+                <ProtectedRoute>
+                  <MyPage tr={tr} />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/refund" element={<Refund />} />

@@ -50,10 +50,13 @@ export function Layout({ children, lang, setLang, tr }: LayoutProps) {
             </button>
             {user ? (
               <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1 text-slate-600 text-sm">
+                <Link
+                  to="/mypage"
+                  className="flex items-center gap-1 text-slate-600 hover:text-primary no-underline text-sm"
+                >
                   <User size={14} />
                   {user.email?.split('@')[0]}
-                </span>
+                </Link>
                 <button
                   onClick={signOut}
                   className="flex items-center gap-1 text-slate-500 hover:text-red-500 bg-transparent border-none cursor-pointer text-sm"
@@ -89,13 +92,23 @@ export function Layout({ children, lang, setLang, tr }: LayoutProps) {
               {lang === 'ko' ? 'English' : '한국어'}
             </button>
             {user ? (
-              <button
-                onClick={() => { signOut(); setMenuOpen(false); }}
-                className="flex items-center gap-1 text-slate-500 bg-transparent border-none cursor-pointer text-sm py-1"
-              >
-                <LogOut size={16} />
-                {tr.auth.logout}
-              </button>
+              <>
+                <Link
+                  to="/mypage"
+                  className="flex items-center gap-1 text-slate-600 no-underline py-1 text-sm"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <User size={16} />
+                  {tr.auth.mypage}
+                </Link>
+                <button
+                  onClick={() => { signOut(); setMenuOpen(false); }}
+                  className="flex items-center gap-1 text-slate-500 bg-transparent border-none cursor-pointer text-sm py-1"
+                >
+                  <LogOut size={16} />
+                  {tr.auth.logout}
+                </button>
+              </>
             ) : (
               <Link to="/login" className="text-slate-600 no-underline py-1" onClick={() => setMenuOpen(false)}>
                 {tr.auth.login}

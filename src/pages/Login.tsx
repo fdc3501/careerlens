@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { CheckCircle } from 'lucide-react';
 import type { Translations } from '../i18n';
 
 interface LoginProps {
@@ -15,6 +16,7 @@ export function Login({ tr }: LoginProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +31,29 @@ export function Login({ tr }: LoginProps) {
 
     if (result.error) {
       setError(result.error);
+    } else if (isSignUp) {
+      setSignupSuccess(true);
     } else {
       navigate('/');
     }
   };
+
+  if (signupSuccess) {
+    return (
+      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4">
+        <div className="w-full max-w-sm text-center">
+          <CheckCircle size={48} className="text-green-500 mx-auto mb-4" />
+          <p className="text-lg text-slate-700 mb-6">{tr.auth.signupSuccess}</p>
+          <button
+            onClick={() => { setSignupSuccess(false); setIsSignUp(false); }}
+            className="text-primary hover:underline bg-transparent border-none cursor-pointer text-sm font-medium"
+          >
+            {tr.auth.backToLogin}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4">

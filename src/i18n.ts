@@ -115,6 +115,11 @@ const translations = {
       switchToLogin: '이미 계정이 있으신가요? 로그인',
       logout: '로그아웃',
       or: '또는',
+      signupSuccess: '가입 완료! 이메일에서 인증 링크를 클릭해주세요.',
+      backToLogin: '로그인으로 돌아가기',
+      mypage: '마이페이지',
+      analysisHistory: '분석 이력',
+      noHistory: '아직 분석 이력이 없습니다.',
     },
     footer: {
       terms: '이용약관',
@@ -237,6 +242,11 @@ const translations = {
       switchToLogin: 'Already have an account? Log In',
       logout: 'Log Out',
       or: 'or',
+      signupSuccess: 'Sign up complete! Check your email to verify.',
+      backToLogin: 'Back to Log In',
+      mypage: 'My Page',
+      analysisHistory: 'Analysis History',
+      noHistory: 'No analysis history yet.',
     },
     footer: {
       terms: 'Terms of Service',
