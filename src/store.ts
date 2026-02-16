@@ -1,5 +1,9 @@
 import { useState, useCallback } from 'react';
 import type { Lang } from './i18n';
+import { fetchGitHubData } from './api/github';
+import { fetchStackExchangeData } from './api/stackexchange';
+import { fetchNPMData } from './api/npm';
+import { fetchPyPIData } from './api/pypi';
 
 export interface CareerInput {
   jobTitle: string;
@@ -26,37 +30,109 @@ const initialInput: CareerInput = {
   goal: '',
 };
 
+function generateFallbackAnalysis(input: CareerInput): AnalysisResult {
+  const skillList = input.skills.split(',').map(s => s.trim()).filter(Boolean);
+  const expYears = parseInt(input.experience) || 0;
+
+  const baseScore = Math.min(40 + expYears * 5 + skillList.length * 3, 95);
+  const variance = () => Math.floor(Math.random() * 20 - 10);
+
+  const skills = skillList.map(name => {
+    const score = Math.min(Math.max(baseScore + variance(), 10), 100);
+    const marketAvg = Math.min(Math.max(score + variance(), 10), 100);
+    return { name, score, marketAvg };
+  });
+
+  if (skills.length === 0) {
+    skills.push({ name: 'General', score: baseScore, marketAvg: baseScore + 5 });
+  }
+
+  return {
+    marketPosition: Math.min(Math.max(baseScore + variance(), 10), 100),
+    techTrend: Math.min(Math.max(baseScore + variance(), 10), 100),
+    demandLevel: Math.min(Math.max(baseScore + variance(), 10), 100),
+    overallScore: baseScore,
+    skills,
+    sources: ['Fallback (offline)'],
+  };
+}
+
+/** Safely run an async fetcher; returns null on failure */
+async function safe<T>(fn: () => Promise<T>): Promise<T | null> {
+  try {
+    return await fn();
+  } catch {
+    return null;
+  }
+}
+
 export function useAppState() {
   const [lang, setLang] = useState<Lang>('ko');
   const [careerInput, setCareerInput] = useState<CareerInput>(initialInput);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
 
-  const generateMockAnalysis = useCallback((input: CareerInput): AnalysisResult => {
+  const generateAnalysis = useCallback(async (input: CareerInput): Promise<AnalysisResult> => {
     const skillList = input.skills.split(',').map(s => s.trim()).filter(Boolean);
     const expYears = parseInt(input.experience) || 0;
 
-    const baseScore = Math.min(40 + expYears * 5 + skillList.length * 3, 95);
-    const variance = () => Math.floor(Math.random() * 20 - 10);
+    // Fetch all APIs in parallel, each independently fallible
+    const [ghData, seData, npmData, pypiData] = await Promise.all([
+      safe(() => fetchGitHubData(input)),
+      safe(() => fetchStackExchangeData(skillList)),
+      safe(() => fetchNPMData(skillList)),
+      safe(() => fetchPyPIData(skillList)),
+    ]);
 
-    const skills = skillList.map(name => {
+    // If GitHub (primary source) failed entirely, use fallback
+    if (!ghData) {
+      return generateFallbackAnalysis(input);
+    }
+
+    const sources: string[] = ['GitHub API'];
+    if (seData) sources.push('StackExchange API');
+    if (npmData) sources.push('NPM Registry');
+    if (pypiData) sources.push('PyPI API');
+
+    const baseScore = Math.min(40 + expYears * 5 + skillList.length * 3, 95);
+    const variance = () => Math.floor(Math.random() * 10 - 5);
+
+    // Build per-skill scores by aggregating available sources
+    const skills = ghData.skills.map((gh, i) => {
       const score = Math.min(Math.max(baseScore + variance(), 10), 100);
-      const marketAvg = Math.min(Math.max(score + variance(), 10), 100);
-      return { name, score, marketAvg };
+
+      // marketAvg: weighted average of available API scores
+      const scores: number[] = [gh.marketAvg];
+      if (seData?.[i]) scores.push(seData[i].demandScore);
+      if (npmData?.[i]) scores.push(npmData[i].popularityScore);
+      if (pypiData?.[i]) scores.push(pypiData[i].maturityScore);
+
+      const marketAvg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+
+      return { name: gh.name, score, marketAvg: Math.min(Math.max(marketAvg, 0), 100) };
     });
 
     if (skills.length === 0) {
-      skills.push(
-        { name: 'General', score: baseScore, marketAvg: baseScore + 5 },
-      );
+      skills.push({ name: 'General', score: baseScore, marketAvg: 50 });
     }
 
+    // demandLevel: use StackExchange average if available, else experience-based
+    let demandLevel: number;
+    if (seData && seData.length > 0) {
+      const avgDemand = Math.round(seData.reduce((s, d) => s + d.demandScore, 0) / seData.length);
+      demandLevel = Math.min(Math.max(avgDemand + variance(), 10), 100);
+    } else {
+      demandLevel = Math.min(Math.max(baseScore + variance(), 10), 100);
+    }
+
+    const overallScore = Math.round((ghData.marketPosition + ghData.techTrend + demandLevel) / 3);
+
     return {
-      marketPosition: Math.min(Math.max(baseScore + variance(), 10), 100),
-      techTrend: Math.min(Math.max(baseScore + variance(), 10), 100),
-      demandLevel: Math.min(Math.max(baseScore + variance(), 10), 100),
-      overallScore: baseScore,
+      marketPosition: ghData.marketPosition,
+      techTrend: ghData.techTrend,
+      demandLevel,
+      overallScore,
       skills,
-      sources: ['GitHub API', 'StackExchange API', 'Google Trends', 'NPM Registry', 'PyPI API'],
+      sources,
     };
   }, []);
 
@@ -67,6 +143,6 @@ export function useAppState() {
     setCareerInput,
     analysis,
     setAnalysis,
-    generateMockAnalysis,
+    generateAnalysis,
   };
 }

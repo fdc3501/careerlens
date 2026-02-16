@@ -34,7 +34,7 @@ function App() {
                   tr={tr}
                   careerInput={state.careerInput}
                   setCareerInput={state.setCareerInput}
-                  generateAnalysis={state.generateMockAnalysis}
+                  generateAnalysis={state.generateAnalysis}
                   setAnalysis={state.setAnalysis}
                 />
               }
@@ -44,7 +44,7 @@ function App() {
               element={
                 <Upload
                   tr={tr}
-                  generateAnalysis={state.generateMockAnalysis}
+                  generateAnalysis={state.generateAnalysis}
                   setCareerInput={state.setCareerInput}
                   setAnalysis={state.setAnalysis}
                 />

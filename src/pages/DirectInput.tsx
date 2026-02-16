@@ -8,7 +8,7 @@ interface Props {
   tr: Translations;
   careerInput: CareerInput;
   setCareerInput: (input: CareerInput) => void;
-  generateAnalysis: (input: CareerInput) => AnalysisResult;
+  generateAnalysis: (input: CareerInput) => Promise<AnalysisResult>;
   setAnalysis: (result: AnalysisResult) => void;
 }
 
@@ -37,14 +37,16 @@ export function DirectInput({ tr, careerInput, setCareerInput, generateAnalysis,
     setCareerInput({ ...careerInput, [field]: value });
   }
 
-  function handleNext() {
+  async function handleNext() {
     if (isLast) {
       setLoading(true);
-      setTimeout(() => {
-        const result = generateAnalysis(careerInput);
+      try {
+        const result = await generateAnalysis(careerInput);
         setAnalysis(result);
         navigate('/preview');
-      }, 1500);
+      } finally {
+        setLoading(false);
+      }
     } else {
       setStep(step + 1);
     }

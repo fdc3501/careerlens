@@ -6,7 +6,7 @@ import type { CareerInput, AnalysisResult } from '../store';
 
 interface Props {
   tr: Translations;
-  generateAnalysis: (input: CareerInput) => AnalysisResult;
+  generateAnalysis: (input: CareerInput) => Promise<AnalysisResult>;
   setCareerInput: (input: CareerInput) => void;
   setAnalysis: (result: AnalysisResult) => void;
 }
@@ -25,23 +25,25 @@ export function Upload({ tr, generateAnalysis, setCareerInput, setAnalysis }: Pr
     setFile(f);
   }
 
-  function handleAnalyze() {
+  async function handleAnalyze() {
     if (!file) return;
     setLoading(true);
     // Mock: simulate resume parsing
-    setTimeout(() => {
-      const mockInput: CareerInput = {
-        jobTitle: 'Software Engineer',
-        experience: '3',
-        skills: 'React, TypeScript, Node.js, Python',
-        industry: 'IT/Software',
-        goal: 'Senior Developer',
-      };
-      setCareerInput(mockInput);
-      const result = generateAnalysis(mockInput);
+    const mockInput: CareerInput = {
+      jobTitle: 'Software Engineer',
+      experience: '3',
+      skills: 'React, TypeScript, Node.js, Python',
+      industry: 'IT/Software',
+      goal: 'Senior Developer',
+    };
+    setCareerInput(mockInput);
+    try {
+      const result = await generateAnalysis(mockInput);
       setAnalysis(result);
       navigate('/preview');
-    }, 2000);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
