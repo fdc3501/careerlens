@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload as UploadIcon, FileText, ArrowLeft } from 'lucide-react';
 import type { Translations } from '../i18n';
-import type { CareerInput, AnalysisResult } from '../store';
+import type { CareerInput, AnalysisResult, ReportData } from '../store';
+import { initialInput } from '../store';
 import { extractText } from '../lib/resumeExtractor';
 import { parseResume } from '../api/parseResume';
 
@@ -10,10 +11,11 @@ interface Props {
   tr: Translations;
   generateAnalysis: (input: CareerInput) => Promise<AnalysisResult>;
   setCareerInput: (input: CareerInput) => void;
-  setAnalysis: (result: AnalysisResult) => void;
+  setAnalysis: (result: AnalysisResult | null) => void;
+  setReport: (report: ReportData | null) => void;
 }
 
-export function Upload({ tr, generateAnalysis, setCareerInput, setAnalysis }: Props) {
+export function Upload({ tr, generateAnalysis, setCareerInput, setAnalysis, setReport }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
@@ -21,6 +23,13 @@ export function Upload({ tr, generateAnalysis, setCareerInput, setAnalysis }: Pr
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  // Reset all state on mount so manual input data doesn't leak in
+  useEffect(() => {
+    setCareerInput({ ...initialInput });
+    setAnalysis(null);
+    setReport(null);
+  }, [setCareerInput, setAnalysis, setReport]);
 
   function handleFile(f: File) {
     const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];

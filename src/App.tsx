@@ -36,6 +36,7 @@ function App() {
                   setCareerInput={state.setCareerInput}
                   generateAnalysis={state.generateAnalysis}
                   setAnalysis={state.setAnalysis}
+                  setReport={state.setReport}
                 />
               }
             />
@@ -47,6 +48,7 @@ function App() {
                   generateAnalysis={state.generateAnalysis}
                   setCareerInput={state.setCareerInput}
                   setAnalysis={state.setAnalysis}
+                  setReport={state.setReport}
                 />
               }
             />

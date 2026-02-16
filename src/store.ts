@@ -33,7 +33,7 @@ export interface ReportData {
   roadmap: { month3: string[]; month6: string[]; month12: string[] };
 }
 
-const initialInput: CareerInput = {
+export const initialInput: CareerInput = {
   jobTitle: '',
   experience: '',
   skills: '',

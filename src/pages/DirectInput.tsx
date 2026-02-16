@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Search } from 'lucide-react';
 import type { Translations } from '../i18n';
-import type { CareerInput, AnalysisResult } from '../store';
+import type { CareerInput, AnalysisResult, ReportData } from '../store';
+import { initialInput } from '../store';
 
 interface Props {
   tr: Translations;
   careerInput: CareerInput;
   setCareerInput: (input: CareerInput) => void;
   generateAnalysis: (input: CareerInput) => Promise<AnalysisResult>;
-  setAnalysis: (result: AnalysisResult) => void;
+  setAnalysis: (result: AnalysisResult | null) => void;
+  setReport: (report: ReportData | null) => void;
 }
 
 type StepKey = 'jobTitle' | 'experience' | 'skills' | 'industry' | 'careerPath' | 'leadershipExperience' | 'globalExperience' | 'goal';
@@ -18,10 +20,17 @@ const steps: StepKey[] = ['jobTitle', 'experience', 'skills', 'industry', 'caree
 
 const selectSteps = new Set<StepKey>(['leadershipExperience', 'globalExperience']);
 
-export function DirectInput({ tr, careerInput, setCareerInput, generateAnalysis, setAnalysis }: Props) {
+export function DirectInput({ tr, careerInput, setCareerInput, generateAnalysis, setAnalysis, setReport }: Props) {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Reset all state on mount so resume upload data doesn't leak in
+  useEffect(() => {
+    setCareerInput({ ...initialInput });
+    setAnalysis(null);
+    setReport(null);
+  }, [setCareerInput, setAnalysis, setReport]);
   const field = steps[step];
   const progress = ((step + 1) / steps.length) * 100;
 
