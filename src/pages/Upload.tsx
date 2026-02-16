@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Upload as UploadIcon, FileText, ArrowLeft } from 'lucide-react';
 import type { Translations } from '../i18n';
 import type { CareerInput, AnalysisResult } from '../store';
+import { extractText } from '../lib/resumeExtractor';
+import { parseResume } from '../api/parseResume';
 
 interface Props {
   tr: Translations;
@@ -14,6 +16,8 @@ interface Props {
 export function Upload({ tr, generateAnalysis, setCareerInput, setAnalysis }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState('');
+  const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -23,26 +27,33 @@ export function Upload({ tr, generateAnalysis, setCareerInput, setAnalysis }: Pr
     if (!validTypes.includes(f.type)) return;
     if (f.size > 5 * 1024 * 1024) return;
     setFile(f);
+    setError('');
   }
 
   async function handleAnalyze() {
     if (!file) return;
     setLoading(true);
-    // Mock: simulate resume parsing
-    const mockInput: CareerInput = {
-      jobTitle: 'Software Engineer',
-      experience: '3',
-      skills: 'React, TypeScript, Node.js, Python',
-      industry: 'IT/Software',
-      goal: 'Senior Developer',
-    };
-    setCareerInput(mockInput);
+    setError('');
     try {
-      const result = await generateAnalysis(mockInput);
+      setLoadingMsg(tr.upload.parsing);
+      const text = await extractText(file);
+
+      setLoadingMsg(tr.upload.analyzing);
+      const input = await parseResume(text);
+      if (!input) {
+        setError(tr.upload.parseError);
+        return;
+      }
+
+      setCareerInput(input);
+      const result = await generateAnalysis(input);
       setAnalysis(result);
       navigate('/preview');
+    } catch {
+      setError(tr.upload.parseError);
     } finally {
       setLoading(false);
+      setLoadingMsg('');
     }
   }
 
@@ -101,13 +112,17 @@ export function Upload({ tr, generateAnalysis, setCareerInput, setAnalysis }: Pr
           {loading ? (
             <>
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              {tr.upload.uploading}
+              {loadingMsg || tr.upload.uploading}
             </>
           ) : (
             tr.upload.analyze
           )}
         </button>
       </div>
+
+      {error && (
+        <p className="mt-4 text-sm text-red-500 text-center">{error}</p>
+      )}
     </div>
   );
 }
