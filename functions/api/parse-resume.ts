@@ -9,6 +9,9 @@ Rules:
 - If a field cannot be determined, use a reasonable default based on context
 - experience should be a number string (years)
 - skills should be comma-separated
+- careerPath should list key role transitions separated by " → " (e.g., "R&D → PM → Business Development")
+- leadershipExperience should be "true" if any leadership/management role is mentioned, "false" otherwise
+- globalExperience should be "true" if overseas work or global projects are mentioned, "false" otherwise
 - Respond in the SAME LANGUAGE as the resume (if Korean resume, respond in Korean; if English, respond in English)
 
 Output format:
@@ -17,6 +20,9 @@ Output format:
   "experience": "total years of experience as a number string",
   "skills": "comma-separated list of technical skills",
   "industry": "industry sector",
+  "careerPath": "role1 → role2 → role3",
+  "leadershipExperience": "true or false",
+  "globalExperience": "true or false",
   "goal": "inferred career goal based on trajectory"
 }`;
 
@@ -55,7 +61,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           { role: 'user', content: text },
         ],
         temperature: 0.3,
-        max_tokens: 500,
+        max_tokens: 600,
       }),
     });
 
@@ -72,6 +78,11 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
     const cleaned = content.replace(/```json\n?|```\n?/g, '').trim();
     const parsed = JSON.parse(cleaned);
+
+    // Ensure new fields have defaults
+    parsed.careerPath = parsed.careerPath || parsed.jobTitle || '';
+    parsed.leadershipExperience = parsed.leadershipExperience || 'false';
+    parsed.globalExperience = parsed.globalExperience || 'false';
 
     return Response.json(parsed);
   } catch (err: any) {

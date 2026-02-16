@@ -18,6 +18,9 @@ export async function parseResume(text: string): Promise<CareerInput | null> {
       experience: data.experience || '0',
       skills: data.skills,
       industry: data.industry || '',
+      careerPath: data.careerPath || data.jobTitle || '',
+      leadershipExperience: data.leadershipExperience || 'false',
+      globalExperience: data.globalExperience || 'false',
       goal: data.goal || '',
     };
   } catch {

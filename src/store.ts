@@ -11,6 +11,9 @@ export interface CareerInput {
   experience: string;
   skills: string;
   industry: string;
+  careerPath: string;
+  leadershipExperience: string;
+  globalExperience: string;
   goal: string;
 }
 
@@ -24,6 +27,7 @@ export interface AnalysisResult {
 }
 
 export interface ReportData {
+  content: string;
   summary: string;
   skillInsights: { name: string; analysis: string }[];
   roadmap: { month3: string[]; month6: string[]; month12: string[] };
@@ -34,6 +38,9 @@ const initialInput: CareerInput = {
   experience: '',
   skills: '',
   industry: '',
+  careerPath: '',
+  leadershipExperience: '',
+  globalExperience: '',
   goal: '',
 };
 
