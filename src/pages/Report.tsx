@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Share2, Download, Mail, Info, Loader2, TrendingUp, Target, Cpu, Globe, Users, BarChart3 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Translations } from '../i18n';
-import type { AnalysisResult, CareerInput, ReportData } from '../store';
+import type { AnalysisResult, CareerInput, ReportData, PaymentCredential } from '../store';
 import { useAuth } from '../auth/AuthContext';
 import { saveAnalysisHistory } from '../lib/history';
 
@@ -14,7 +14,7 @@ interface Props {
   careerInput: CareerInput;
   report: ReportData | null;
   reportLoading: boolean;
-  generateReport: () => Promise<void>;
+  generateReport: (credential?: PaymentCredential) => Promise<void>;
 }
 
 function SignalGauge({ value, label, icon: Icon }: { value: number; label: string; icon: React.ElementType }) {
@@ -42,22 +42,38 @@ function SignalGauge({ value, label, icon: Icon }: { value: number; label: strin
 }
 
 export function Report({ tr, analysis, careerInput, report, reportLoading, generateReport }: Props) {
-  if (!analysis) return <Navigate to="/start" replace />;
-
   const { user } = useAuth();
+  const navigate = useNavigate();
   const savedRef = useRef(false);
+  const initRef = useRef(false);
 
+  // Payment gate: check credentials on mount, then trigger report generation
   useEffect(() => {
-    generateReport();
-  }, [generateReport]);
+    if (initRef.current) return;
+    initRef.current = true;
 
-  // Save to history once report is generated
+    if (!analysis) return; // Guard - analysis checked in render below
+
+    const orderId = localStorage.getItem('cl_payment_order_id');
+    const paymentType = localStorage.getItem('cl_payment_type') as 'one_time' | 'subscription' | null;
+
+    if (!orderId || !paymentType) {
+      navigate('/pricing', { replace: true });
+      return;
+    }
+
+    generateReport({ orderId, paymentType });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save to history once report is generated (only for logged-in users)
   useEffect(() => {
-    if (report && user && !savedRef.current) {
+    if (report && user && analysis && !savedRef.current) {
       savedRef.current = true;
       saveAnalysisHistory(user.id, careerInput, analysis, report);
     }
   }, [report, user, careerInput, analysis]);
+
+  if (!analysis) return <Navigate to="/start" replace />;
 
   function getOverallLevel() {
     if (analysis!.overallScore >= 70) return { text: 'Strong', color: 'text-strong', bg: 'bg-green-500' };

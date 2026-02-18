@@ -1,5 +1,13 @@
 interface Env {
   OPENAI_API_KEY: string;
+  SUPABASE_URL: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
+  VITE_SUPABASE_URL: string;
+}
+
+interface PaymentCredential {
+  orderId: string;       // polar_checkout_id for one_time; unused for subscription
+  paymentType: 'one_time' | 'subscription';
 }
 
 interface RequestBody {
@@ -21,6 +29,7 @@ interface RequestBody {
     skills: { name: string; score: number; marketAvg: number }[];
     sources: string[];
   };
+  credential?: PaymentCredential;
 }
 
 const SYSTEM_PROMPT = `You are a senior career strategy consultant and structured analysis engine for CareerLens.
@@ -335,11 +344,111 @@ ${JSON.stringify(body.analysis.sources || ['GitHub API'], null, 2)}
   return userPrompt;
 }
 
+/** Verify payment credential before generating report */
+async function verifyPayment(
+  credential: PaymentCredential,
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  authHeader: string,
+): Promise<{ ok: boolean; userId?: string; error?: string; status?: number }> {
+  if (credential.paymentType === 'one_time') {
+    // Validate order in Supabase
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/orders?polar_checkout_id=eq.${encodeURIComponent(credential.orderId)}&select=status,report_generated`,
+      {
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+      },
+    );
+    const orders: any[] = await res.json();
+    if (!orders.length) {
+      return { ok: false, error: 'Order not found', status: 402 };
+    }
+    const order = orders[0];
+    if (order.status !== 'succeeded') {
+      return { ok: false, error: 'Payment not completed', status: 402 };
+    }
+    if (order.report_generated) {
+      return { ok: false, error: 'Report already generated for this order', status: 402 };
+    }
+    return { ok: true };
+  }
+
+  if (credential.paymentType === 'subscription') {
+    // Verify JWT
+    if (!authHeader.startsWith('Bearer ')) {
+      return { ok: false, error: 'Missing authorization token', status: 401 };
+    }
+    const jwt = authHeader.slice(7);
+
+    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        apikey: serviceRoleKey,
+      },
+    });
+
+    if (!userRes.ok) {
+      return { ok: false, error: 'Invalid token', status: 401 };
+    }
+
+    const userData: any = await userRes.json();
+    const userId: string = userData.id;
+
+    // Check subscription status
+    const profileRes = await fetch(
+      `${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=subscription_status`,
+      {
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+      },
+    );
+    const profiles: any[] = await profileRes.json();
+    if (!profiles.length || profiles[0].subscription_status !== 'active') {
+      return { ok: false, error: 'No active subscription', status: 402 };
+    }
+
+    // Increment daily usage atomically
+    const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/increment_daily_usage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({ p_user_id: userId }),
+    });
+
+    if (!rpcRes.ok) {
+      return { ok: false, error: 'Usage tracking failed', status: 500 };
+    }
+
+    const count: number = await rpcRes.json();
+    if (count > 1) {
+      return { ok: false, error: 'Daily report limit reached (1 per day)', status: 402 };
+    }
+
+    return { ok: true, userId };
+  }
+
+  return { ok: false, error: 'Unknown payment type', status: 400 };
+}
+
 export const onRequestPost = async (context: { request: Request; env: Env }) => {
   const { request, env } = context;
 
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL;
+
   if (!env.OPENAI_API_KEY) {
     return Response.json({ error: 'OpenAI API key not configured' }, { status: 500 });
+  }
+
+  if (!supabaseUrl || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    return Response.json({ error: 'Database not configured' }, { status: 500 });
   }
 
   let body: RequestBody;
@@ -351,6 +460,26 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
   if (!body.careerInput || !body.analysis) {
     return Response.json({ error: 'Missing careerInput or analysis' }, { status: 400 });
+  }
+
+  // Payment gate
+  if (!body.credential) {
+    return Response.json({ error: 'Payment required' }, { status: 402 });
+  }
+
+  const authHeader = request.headers.get('Authorization') ?? '';
+  const paymentCheck = await verifyPayment(
+    body.credential,
+    supabaseUrl,
+    env.SUPABASE_SERVICE_ROLE_KEY,
+    authHeader,
+  );
+
+  if (!paymentCheck.ok) {
+    return Response.json(
+      { error: paymentCheck.error },
+      { status: paymentCheck.status ?? 402 },
+    );
   }
 
   // Provide defaults for new fields if missing (backward compatibility)
@@ -393,6 +522,23 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     // Parse the JSON response from OpenAI
     const cleaned = content.replace(/```json\n?|```\n?/g, '').trim();
     const report = JSON.parse(cleaned);
+
+    // Mark one-time order as report generated
+    if (body.credential.paymentType === 'one_time') {
+      await fetch(
+        `${supabaseUrl}/rest/v1/orders?polar_checkout_id=eq.${encodeURIComponent(body.credential.orderId)}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({ report_generated: true }),
+        },
+      );
+    }
 
     return Response.json(report);
   } catch (err: any) {

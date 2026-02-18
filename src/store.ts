@@ -33,6 +33,11 @@ export interface ReportData {
   roadmap: { month3: string[]; month6: string[]; month12: string[] };
 }
 
+export interface PaymentCredential {
+  orderId: string;
+  paymentType: 'one_time' | 'subscription';
+}
+
 export const initialInput: CareerInput = {
   jobTitle: '',
   experience: '',
@@ -152,11 +157,11 @@ export function useAppState() {
     };
   }, []);
 
-  const generateReport = useCallback(async () => {
+  const generateReport = useCallback(async (credential?: PaymentCredential) => {
     if (!analysis || report || reportLoading) return;
     setReportLoading(true);
     try {
-      const data = await fetchReport(careerInput, analysis);
+      const data = await fetchReport(careerInput, analysis, credential);
       if (data) setReport(data);
     } finally {
       setReportLoading(false);
@@ -173,6 +178,27 @@ export function useAppState() {
     setReport(savedReport);
   }, []);
 
+  /** Save current analysis data to localStorage for post-payment restoration */
+  const savePendingSession = useCallback((type: 'one_time' | 'subscription'): string => {
+    const key = `cl_pending_${Date.now()}`;
+    localStorage.setItem(key, JSON.stringify({ careerInput, analysis, type }));
+    return key;
+  }, [careerInput, analysis]);
+
+  /** Restore analysis data from localStorage pending session */
+  const restoreFromPendingSession = useCallback((key: string): void => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const { careerInput: savedInput, analysis: savedAnalysis } = JSON.parse(raw);
+      setCareerInput(savedInput);
+      setAnalysis(savedAnalysis);
+      setReport(null);
+    } catch {
+      // ignore parse errors
+    }
+  }, []);
+
   return {
     lang,
     setLang,
@@ -186,5 +212,7 @@ export function useAppState() {
     reportLoading,
     generateReport,
     restoreFromHistory,
+    savePendingSession,
+    restoreFromPendingSession,
   };
 }

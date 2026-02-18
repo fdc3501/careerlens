@@ -10,6 +10,8 @@ import { DirectInput } from './pages/DirectInput';
 import { Upload } from './pages/Upload';
 import { Preview } from './pages/Preview';
 import { Report } from './pages/Report';
+import { Pricing } from './pages/Pricing';
+import { PaymentSuccess } from './pages/PaymentSuccess';
 import { Login } from './pages/Login';
 import { MyPage } from './pages/MyPage';
 import { Terms } from './pages/Terms';
@@ -57,18 +59,35 @@ function App() {
               element={<Preview tr={tr} analysis={state.analysis} />}
             />
             <Route
+              path="/pricing"
+              element={
+                <Pricing
+                  tr={tr}
+                  analysis={state.analysis}
+                  savePendingSession={state.savePendingSession}
+                />
+              }
+            />
+            <Route
+              path="/payment-success"
+              element={
+                <PaymentSuccess
+                  tr={tr}
+                  restoreFromPendingSession={state.restoreFromPendingSession}
+                />
+              }
+            />
+            <Route
               path="/report"
               element={
-                <ProtectedRoute>
-                  <Report
-                    tr={tr}
-                    analysis={state.analysis}
-                    careerInput={state.careerInput}
-                    report={state.report}
-                    reportLoading={state.reportLoading}
-                    generateReport={state.generateReport}
-                  />
-                </ProtectedRoute>
+                <Report
+                  tr={tr}
+                  analysis={state.analysis}
+                  careerInput={state.careerInput}
+                  report={state.report}
+                  reportLoading={state.reportLoading}
+                  generateReport={state.generateReport}
+                />
               }
             />
             <Route path="/login" element={<Login tr={tr} />} />

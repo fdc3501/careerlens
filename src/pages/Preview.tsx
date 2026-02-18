@@ -64,7 +64,7 @@ export function Preview({ tr, analysis }: Props) {
         <h3 className="font-bold text-lg text-slate-900 mb-2">{tr.preview.fullReportCta}</h3>
         <p className="text-sm text-slate-500 mb-4">{tr.preview.fullReportDesc}</p>
         <Link
-          to="/report"
+          to="/pricing"
           className="inline-block bg-primary text-white px-8 py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors no-underline"
         >
           {tr.preview.fullReportCta}
