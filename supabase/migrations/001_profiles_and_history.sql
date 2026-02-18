@@ -3,7 +3,13 @@
 -- Run this in the Supabase SQL Editor
 -- ============================================================
 
--- 1. profiles table
+-- cleanup
+drop trigger if exists on_auth_user_created on auth.users;
+drop function if exists handle_new_user();
+drop table if exists analysis_history;
+drop table if exists profiles;
+
+-- profiles table
 create table profiles (
   id uuid references auth.users on delete cascade primary key,
   email text,
@@ -13,14 +19,15 @@ create table profiles (
 alter table profiles enable row level security;
 
 create policy "Users can view own profile"
-  on profiles for select
-  using (auth.uid() = id);
+  on profiles for select using (auth.uid() = id);
 
 create policy "Users can update own profile"
-  on profiles for update
-  using (auth.uid() = id);
+  on profiles for update using (auth.uid() = id);
 
--- 2. analysis_history table
+create policy "Allow insert profile"
+  on profiles for insert with check (true);
+
+-- analysis_history table
 create table analysis_history (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references profiles(id) on delete cascade not null,
@@ -33,18 +40,15 @@ create table analysis_history (
 alter table analysis_history enable row level security;
 
 create policy "Users can view own history"
-  on analysis_history for select
-  using (auth.uid() = user_id);
+  on analysis_history for select using (auth.uid() = user_id);
 
 create policy "Users can insert own history"
-  on analysis_history for insert
-  with check (auth.uid() = user_id);
+  on analysis_history for insert with check (auth.uid() = user_id);
 
 create policy "Users can delete own history"
-  on analysis_history for delete
-  using (auth.uid() = user_id);
+  on analysis_history for delete using (auth.uid() = user_id);
 
--- 3. Trigger: auto-create profile on signup
+-- trigger: auto-create profile on signup
 create or replace function handle_new_user()
 returns trigger as $$
 begin
@@ -57,10 +61,15 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
 
--- 4. RPC: delete own account (cascade deletes profiles + history)
+-- rpc: delete own account
 create or replace function delete_own_account()
 returns void as $$
 begin
   delete from auth.users where id = auth.uid();
 end;
 $$ language plpgsql security definer;
+
+-- backfill existing users
+insert into profiles (id, email)
+select id, email from auth.users
+on conflict (id) do nothing;

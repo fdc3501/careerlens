@@ -72,11 +72,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteAccount = async () => {
-    const { error } = await supabase.rpc('delete_own_account');
-    if (!error) {
-      await supabase.auth.signOut();
+    if (!session?.access_token) {
+      return { error: '로그인 세션이 없습니다.' };
     }
-    return { error: error?.message ?? null };
+    try {
+      const res = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        return { error: data.error ?? '계정 삭제에 실패했습니다.' };
+      }
+      await supabase.auth.signOut();
+      return { error: null };
+    } catch (err: unknown) {
+      return { error: err instanceof Error ? err.message : '계정 삭제에 실패했습니다.' };
+    }
   };
 
   return (
