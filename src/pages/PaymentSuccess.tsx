@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Loader2, XCircle, Clock } from 'lucide-react';
 import type { Translations } from '../i18n';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface Props {
   tr: Translations;
@@ -27,30 +26,12 @@ export function PaymentSuccess({ tr, restoreFromPendingSession }: Props) {
       return;
     }
 
-    if (!isSupabaseConfigured || !supabase) {
-      setStatus('failed');
-      return;
-    }
-
     async function pollOrder() {
       attemptRef.current += 1;
 
       try {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('status, metadata_pending_session_key, payment_type')
-          .eq('polar_checkout_id', checkoutId!)
-          .single();
-
-        if (error || !data) {
-          // Not found yet - keep polling
-          if (attemptRef.current < 10) {
-            pollingRef.current = setTimeout(pollOrder, 2000);
-          } else {
-            setStatus('expired');
-          }
-          return;
-        }
+        const res = await fetch(`/api/check-order?checkout_id=${encodeURIComponent(checkoutId!)}`);
+        const data = await res.json();
 
         if (data.status === 'succeeded') {
           // Restore analysis data from pending session
@@ -69,14 +50,14 @@ export function PaymentSuccess({ tr, restoreFromPendingSession }: Props) {
           setStatus('failed');
         } else {
           // Still pending - keep polling
-          if (attemptRef.current < 10) {
+          if (attemptRef.current < 15) {
             pollingRef.current = setTimeout(pollOrder, 2000);
           } else {
             setStatus('expired');
           }
         }
       } catch {
-        if (attemptRef.current < 10) {
+        if (attemptRef.current < 15) {
           pollingRef.current = setTimeout(pollOrder, 2000);
         } else {
           setStatus('expired');
