@@ -7,7 +7,8 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
   const { request, env } = context;
 
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
-    return Response.json({ error: 'Supabase not configured' }, { status: 500 });
+    const availableKeys = Object.keys(env as unknown as object);
+    return Response.json({ error: 'Supabase not configured', availableKeys }, { status: 500 });
   }
 
   const authHeader = request.headers.get('Authorization');
