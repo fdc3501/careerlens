@@ -118,27 +118,7 @@ The "content" field must follow this template structure exactly:
 
 ---
 
-## 0️⃣ 트렌드 변화 분석 (이전 분석 대비)
-(Include this section ONLY when [PREVIOUS_ANALYSIS] and [TREND_DELTA] are present in the prompt)
-
-| 지표 | 이전 | 현재 | 변화 |
-|------|------|------|------|
-| Overall Score | XX | XX | ⬆️ +N / ⬇️ -N / ➡️ 0 |
-| Industry Growth | XX | XX | ... |
-| Market Demand | XX | XX | ... |
-| Skill Competitiveness | XX | XX | ... |
-
-### 📊 스킬별 변화
-
-| 스킬 | 이전 | 현재 | 변화 |
-|------|------|------|------|
-| (name) | XX | XX | ⬆️/⬇️/➡️ [±N] |
-
-> (trend interpretation — 1-2 sentences with exact delta numbers)
-
-📎 **트렌드 근거:** [TREND_DELTA] 사전 계산값 사용
-
----
+(If [PREVIOUS_ANALYSIS] and [TREND_DELTA] are present in the user prompt, insert section 0 here per rules 17t-21t. Otherwise omit section 0 entirely — do NOT generate it with placeholder text.)
 
 ## 1️⃣ Executive Strategic Snapshot
 
