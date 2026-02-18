@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, Zap, Star } from 'lucide-react';
+import { Check, Zap, Star, Loader2 } from 'lucide-react';
 import type { Translations } from '../i18n';
 import type { AnalysisResult } from '../store';
 import { useAuth } from '../auth/AuthContext';
@@ -11,11 +11,32 @@ interface Props {
   savePendingSession: (type: 'one_time' | 'subscription') => string;
 }
 
+interface SubscriptionStatus {
+  active: boolean;
+  limitReached: boolean;
+  resetAt: string | null;
+}
+
 export function Pricing({ tr, analysis, savePendingSession }: Props) {
   const { user, session } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<'one_time' | 'subscription' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [subStatus, setSubStatus] = useState<SubscriptionStatus | null>(null);
+  const [subChecking, setSubChecking] = useState(false);
+
+  // Check subscription status for logged-in users
+  useEffect(() => {
+    if (!user || !session) return;
+    setSubChecking(true);
+    fetch('/api/check-subscription', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+      .then(r => r.json())
+      .then((data: SubscriptionStatus) => setSubStatus(data))
+      .catch(() => {}) // silently ignore — subscription button remains visible
+      .finally(() => setSubChecking(false));
+  }, [user, session]);
 
   if (!analysis) {
     return (
@@ -31,8 +52,13 @@ export function Pricing({ tr, analysis, savePendingSession }: Props) {
     );
   }
 
-  // Already subscribed user
-  const isSubscribed = false; // Will check via API if needed; simplified here
+  const isSubscribed = subStatus?.active === true;
+
+  function handleSubscribedReport() {
+    localStorage.setItem('cl_payment_type', 'subscription');
+    localStorage.setItem('cl_payment_order_id', 'subscription');
+    navigate('/report');
+  }
 
   async function handlePayment(type: 'one_time' | 'subscription') {
     if (type === 'subscription' && !user) {
@@ -152,13 +178,27 @@ export function Pricing({ tr, analysis, savePendingSession }: Props) {
             ))}
           </ul>
 
-          {isSubscribed ? (
-            <Link
-              to="/report"
-              className="w-full bg-white text-primary py-3 rounded-xl font-semibold hover:bg-white/90 transition-colors text-center no-underline block"
+          {subChecking ? (
+            <div className="w-full flex items-center justify-center py-3 gap-2 text-white/80 text-sm">
+              <Loader2 size={16} className="animate-spin" />
+              확인 중...
+            </div>
+          ) : isSubscribed && subStatus?.limitReached ? (
+            <div className="w-full bg-white/20 rounded-xl py-3 px-4 text-center">
+              <p className="text-white text-sm font-semibold">오늘 리포트를 이미 생성했습니다</p>
+              <p className="text-white/70 text-xs mt-1">
+                {subStatus.resetAt
+                  ? `내일 ${new Date(subStatus.resetAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 이후 이용 가능`
+                  : '내일 자정 이후 이용 가능'}
+              </p>
+            </div>
+          ) : isSubscribed ? (
+            <button
+              onClick={handleSubscribedReport}
+              className="w-full bg-white text-primary py-3 rounded-xl font-semibold hover:bg-white/90 transition-colors"
             >
-              {tr.pricing.subscribedCta}
-            </Link>
+              리포트 생성하기 →
+            </button>
           ) : (
             <button
               onClick={() => handlePayment('subscription')}
