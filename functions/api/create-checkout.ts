@@ -64,7 +64,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         customer_email: customerEmail || undefined,
         metadata: {
           pending_session_key: pendingSessionKey,
-          user_id: userId || '',
+          ...(userId ? { user_id: userId } : {}),
           payment_type: type,
         },
       }),
