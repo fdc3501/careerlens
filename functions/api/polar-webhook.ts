@@ -15,10 +15,12 @@ async function verifyWebhookSignature(
     // Standard Webhooks: sign message = "{webhook-id}.{webhook-timestamp}.{body}"
     const signedContent = `${headers.id}.${headers.timestamp}.${payload}`;
 
-    // Secret may have "whsec_" prefix - decode base64 portion
+    // Secret may have "whsec_" or "polar_whs_" prefix - extract base64 portion
     const rawSecret = secret.startsWith('whsec_')
       ? secret.slice(6)
-      : secret;
+      : secret.startsWith('polar_whs_')
+        ? secret.slice(10)
+        : secret;
 
     // Import the key
     const keyData = Uint8Array.from(atob(rawSecret), c => c.charCodeAt(0));
