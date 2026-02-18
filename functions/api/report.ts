@@ -63,6 +63,13 @@ STRICT RULES:
 15. Never mention OpenAI, GPT, or internal reasoning.
 16. Respond in the SAME LANGUAGE as the user's input (if Korean input, respond in Korean; if English, respond in English).
 
+TREND COMPARISON RULES (only when [PREVIOUS_ANALYSIS] and [TREND_DELTA] are present):
+17t. Insert "## 0️⃣ 트렌드 변화 분석" as the FIRST section in content (before section 1).
+18t. Always use EXACT numbers from [TREND_DELTA]. Never recalculate independently.
+19t. Icons: ⬆️ delta ≥ 2 | ⬇️ delta ≤ -2 | ➡️ delta within ±1
+20t. Show per-skill delta table for skills present in both analyses.
+21t. 1-2 sentence trend interpretation citing exact delta values. ±1 is not meaningful.
+
 EVIDENCE & REFERENCE RULES (CRITICAL):
 17. Every analytical statement MUST cite the exact numeric signal value as inline evidence.
     - Pattern: "근거: [Signal Name] [Value]/100, Market Avg [Value]/100, Gap [±Value]"
@@ -108,6 +115,28 @@ Output a valid JSON object with the following structure. No markdown fences, no 
 The "content" field must follow this template structure exactly:
 
 # CareerLens Strategic Career Report
+
+---
+
+## 0️⃣ 트렌드 변화 분석 (이전 분석 대비)
+(Include this section ONLY when [PREVIOUS_ANALYSIS] and [TREND_DELTA] are present in the prompt)
+
+| 지표 | 이전 | 현재 | 변화 |
+|------|------|------|------|
+| Overall Score | XX | XX | ⬆️ +N / ⬇️ -N / ➡️ 0 |
+| Industry Growth | XX | XX | ... |
+| Market Demand | XX | XX | ... |
+| Skill Competitiveness | XX | XX | ... |
+
+### 📊 스킬별 변화
+
+| 스킬 | 이전 | 현재 | 변화 |
+|------|------|------|------|
+| (name) | XX | XX | ⬆️/⬇️/➡️ [±N] |
+
+> (trend interpretation — 1-2 sentences with exact delta numbers)
+
+📎 **트렌드 근거:** [TREND_DELTA] 사전 계산값 사용
 
 ---
 
@@ -237,7 +266,7 @@ The "content" field must follow this template structure exactly:
 - 데이터 부족 영역은 명시적으로 제외했습니다.
 - 적용 임계값: Strong ≥ 70, Stable 40-69, Weak ≤ 39`;
 
-function buildUserPrompt(body: RequestBody): string {
+function buildUserPrompt(body: RequestBody, previousAnalysis?: RequestBody['analysis'] | null): string {
   const { careerInput, analysis } = body;
   const expYears = parseInt(careerInput.experience) || 0;
 
@@ -340,6 +369,32 @@ ${JSON.stringify(body.analysis.sources || ['GitHub API'], null, 2)}
 - 3자리 이상 수치는 소숫점 생략
 - 모든 수치는 단위 포함
 - 비교 기준 반드시 명시`;
+
+  if (previousAnalysis) {
+    const prevAvgSkill = previousAnalysis.skills.length > 0
+      ? Math.round(previousAnalysis.skills.reduce((s, sk) => s + sk.score, 0) / previousAnalysis.skills.length)
+      : previousAnalysis.overallScore;
+
+    const deltas = {
+      overall_score:          analysis.overallScore - previousAnalysis.overallScore,
+      industry_growth_signal: analysis.techTrend    - previousAnalysis.techTrend,
+      market_demand_signal:   analysis.demandLevel  - previousAnalysis.demandLevel,
+      skill_competitiveness:  avgSkillScore         - prevAvgSkill,
+      skill_deltas: analysis.skills
+        .map(s => {
+          const prev = previousAnalysis!.skills.find(ps => ps.name === s.name);
+          return prev ? { name: s.name, delta: s.score - prev.score } : null;
+        })
+        .filter(Boolean),
+    };
+
+    userPrompt += `\n\n━━━━━━━━━━━━━━━━━━\n[PREVIOUS_ANALYSIS]\n━━━━━━━━━━━━━━━━━━\n\n${JSON.stringify({
+      overallScore: previousAnalysis.overallScore,
+      techTrend: previousAnalysis.techTrend,
+      demandLevel: previousAnalysis.demandLevel,
+      skills: previousAnalysis.skills,
+    }, null, 2)}\n\n━━━━━━━━━━━━━━━━━━\n[TREND_DELTA] (사전 계산값 — 반드시 그대로 사용)\n━━━━━━━━━━━━━━━━━━\n\n${JSON.stringify(deltas, null, 2)}`;
+  }
 
   return userPrompt;
 }
@@ -488,6 +543,17 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
   body.careerInput.leadershipExperience = body.careerInput.leadershipExperience || 'false';
   body.careerInput.globalExperience = body.careerInput.globalExperience || 'false';
 
+  // Fetch previous analysis for subscription users (trend comparison)
+  let previousAnalysis: RequestBody['analysis'] | null = null;
+  if (body.credential.paymentType === 'subscription' && paymentCheck.userId) {
+    const spRes = await fetch(
+      `${supabaseUrl}/rest/v1/subscriber_profiles?user_id=eq.${encodeURIComponent(paymentCheck.userId)}&select=last_analysis`,
+      { headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } },
+    );
+    const spData: any[] = await spRes.json();
+    if (spData[0]?.last_analysis) previousAnalysis = spData[0].last_analysis;
+  }
+
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -499,7 +565,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: buildUserPrompt(body) },
+          { role: 'user', content: buildUserPrompt(body, previousAnalysis) },
         ],
         temperature: 0.5,
         max_tokens: 6000,
