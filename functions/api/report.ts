@@ -297,7 +297,7 @@ function buildUserPrompt(body: RequestBody, previousAnalysis?: RequestBody['anal
   // DX alignment: derived from tech trend
   const dxSignal = analysis.techTrend;
 
-  const userPrompt = `사용자 요청:
+  let userPrompt = `사용자 요청:
 "현재 해당 업계의 시장상황 분석, 내가 보유하고 있는 기술의 분석, 나의 career 진단, 앞으로 career develop 로드맵을 제시해봐."
 
 아래는 구조화된 사용자 프로필 및 Decision Signals 데이터입니다.
