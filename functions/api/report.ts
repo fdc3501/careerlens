@@ -68,14 +68,14 @@ TREND COMPARISON RULES (only when [PREVIOUS_ANALYSIS] and [TREND_DELTA] are pres
 18t. Always use EXACT numbers from [TREND_DELTA]. Never recalculate independently.
 19t. Icons: ⬆️ delta ≥ 2 | ⬇️ delta ≤ -2 | ➡️ delta within ±1
 20t. REQUIRED — output BOTH tables in this exact order:
-    TABLE 1 (main metrics) using overall_score / industry_growth_signal / market_demand_signal / skill_competitiveness from [TREND_DELTA]:
+    TABLE 1 (main metrics) — "이전" = values from [PREVIOUS_ANALYSIS], "현재" = values from [DECISION_SIGNALS], "변화" = delta from [TREND_DELTA] with icon:
     | 지표 | 이전 | 현재 | 변화 |
     |------|------|------|------|
-    | Overall Score | prev | cur | ⬆️/⬇️/➡️ delta |
-    | Industry Growth | prev | cur | icon delta |
-    | Market Demand | prev | cur | icon delta |
-    | Skill Competitiveness | prev | cur | icon delta |
-    TABLE 2 (per-skill) using skill_deltas array from [TREND_DELTA]:
+    | Overall Score | [PREVIOUS_ANALYSIS].overallScore | current overallScore | icon overall_score delta |
+    | Industry Growth | [PREVIOUS_ANALYSIS].techTrend | current techTrend | icon industry_growth_signal delta |
+    | Market Demand | [PREVIOUS_ANALYSIS].demandLevel | current demandLevel | icon market_demand_signal delta |
+    | Skill Competitiveness | prev avg skill | current avg skill | icon skill_competitiveness delta |
+    TABLE 2 (per-skill) — "이전" = previous score from [PREVIOUS_ANALYSIS].skills, "현재" = current score, "변화" = delta from skill_deltas in [TREND_DELTA]:
     | 스킬 | 이전 | 현재 | 변화 |
 21t. 1-2 sentence trend interpretation citing exact delta values from [TREND_DELTA]. ±1 is not meaningful.
 
