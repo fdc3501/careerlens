@@ -76,7 +76,7 @@ function App() {
               path="/mypage"
               element={
                 <ProtectedRoute>
-                  <MyPage tr={tr} />
+                  <MyPage tr={tr} restoreFromHistory={state.restoreFromHistory} />
                 </ProtectedRoute>
               }
             />

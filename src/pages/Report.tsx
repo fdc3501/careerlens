@@ -1,10 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Share2, Download, Mail, Info, Loader2, TrendingUp, Target, Cpu, Globe, Users, BarChart3 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Translations } from '../i18n';
 import type { AnalysisResult, CareerInput, ReportData } from '../store';
+import { useAuth } from '../auth/AuthContext';
+import { saveAnalysisHistory } from '../lib/history';
 
 interface Props {
   tr: Translations;
@@ -42,9 +44,20 @@ function SignalGauge({ value, label, icon: Icon }: { value: number; label: strin
 export function Report({ tr, analysis, careerInput, report, reportLoading, generateReport }: Props) {
   if (!analysis) return <Navigate to="/start" replace />;
 
+  const { user } = useAuth();
+  const savedRef = useRef(false);
+
   useEffect(() => {
     generateReport();
   }, [generateReport]);
+
+  // Save to history once report is generated
+  useEffect(() => {
+    if (report && user && !savedRef.current) {
+      savedRef.current = true;
+      saveAnalysisHistory(user.id, careerInput, analysis, report);
+    }
+  }, [report, user, careerInput, analysis]);
 
   function getOverallLevel() {
     if (analysis!.overallScore >= 70) return { text: 'Strong', color: 'text-strong', bg: 'bg-green-500' };

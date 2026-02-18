@@ -163,6 +163,16 @@ export function useAppState() {
     }
   }, [careerInput, analysis, report, reportLoading]);
 
+  const restoreFromHistory = useCallback((
+    savedInput: CareerInput,
+    savedAnalysis: AnalysisResult,
+    savedReport: ReportData | null,
+  ) => {
+    setCareerInput(savedInput);
+    setAnalysis(savedAnalysis);
+    setReport(savedReport);
+  }, []);
+
   return {
     lang,
     setLang,
@@ -175,5 +185,6 @@ export function useAppState() {
     setReport,
     reportLoading,
     generateReport,
+    restoreFromHistory,
   };
 }
