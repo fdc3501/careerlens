@@ -54,6 +54,9 @@ export function Report({ tr, analysis, careerInput, report, reportLoading, gener
 
     if (!analysis) return; // Guard - analysis checked in render below
 
+    // If report is already in state (e.g., restored from history), skip the payment gate
+    if (report) return;
+
     const orderId = localStorage.getItem('cl_payment_order_id');
     const paymentType = localStorage.getItem('cl_payment_type') as 'one_time' | 'subscription' | null;
 

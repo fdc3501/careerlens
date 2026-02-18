@@ -30,7 +30,7 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
 
   // 1. Check Supabase orders table first (webhook may have already updated it)
   const sbRes = await fetch(
-    `${supabaseUrl}/rest/v1/orders?polar_checkout_id=eq.${encodeURIComponent(checkoutId)}&select=status,metadata_pending_session_key,payment_type`,
+    `${supabaseUrl}/rest/v1/orders?polar_checkout_id=eq.${encodeURIComponent(checkoutId)}&select=status,metadata_pending_session_key,payment_type,user_id`,
     { headers: sbHeaders },
   );
   const orders: any[] = await sbRes.json();
@@ -65,19 +65,24 @@ export const onRequestGet = async (context: { request: Request; env: Env }) => {
   const polarStatus: string = checkout.status ?? 'open';
 
   if (polarStatus === 'succeeded' && order) {
+    const patchHeaders = { 'Content-Type': 'application/json', ...sbHeaders, Prefer: 'return=minimal' };
+
     // Webhook hasn't arrived yet — manually mark order as succeeded
     await fetch(
       `${supabaseUrl}/rest/v1/orders?polar_checkout_id=eq.${encodeURIComponent(checkoutId)}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...sbHeaders,
-          Prefer: 'return=minimal',
-        },
-        body: JSON.stringify({ status: 'succeeded' }),
-      },
+      { method: 'PATCH', headers: patchHeaders, body: JSON.stringify({ status: 'succeeded' }) },
     );
+
+    // For subscription payments, proactively activate the user's subscription in profiles
+    // so that report.ts can verify immediately without waiting for the webhook
+    const userId: string = order.user_id ?? checkout.metadata?.user_id ?? '';
+    if ((order.payment_type === 'subscription') && userId) {
+      await fetch(
+        `${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`,
+        { method: 'PATCH', headers: patchHeaders, body: JSON.stringify({ subscription_status: 'active' }) },
+      );
+    }
+
     return Response.json({
       status: 'succeeded',
       metadata_pending_session_key: order.metadata_pending_session_key,

@@ -465,7 +465,24 @@ async function verifyPayment(
     );
     const profiles: any[] = await profileRes.json();
     if (!profiles.length || profiles[0].subscription_status !== 'active') {
-      return { ok: false, error: 'No active subscription', status: 402 };
+      // Fallback: check subscriptions table directly (webhook may have arrived but profiles not updated)
+      const subRes = await fetch(
+        `${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=id`,
+        { headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` } },
+      );
+      const activeSubs: any[] = await subRes.json();
+      if (!activeSubs.length) {
+        return { ok: false, error: 'No active subscription', status: 402 };
+      }
+      // Active subscription found — heal the profile status for future requests
+      await fetch(
+        `${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}`, Prefer: 'return=minimal' },
+          body: JSON.stringify({ subscription_status: 'active' }),
+        },
+      );
     }
 
     // Increment daily usage atomically
@@ -568,7 +585,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
           { role: 'user', content: buildUserPrompt(body, previousAnalysis) },
         ],
         temperature: 0.5,
-        max_tokens: 6000,
+        max_tokens: 8000,
       }),
     });
 
