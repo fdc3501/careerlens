@@ -67,8 +67,17 @@ TREND COMPARISON RULES (only when [PREVIOUS_ANALYSIS] and [TREND_DELTA] are pres
 17t. Insert "## 0️⃣ 트렌드 변화 분석" as the FIRST section in content (before section 1).
 18t. Always use EXACT numbers from [TREND_DELTA]. Never recalculate independently.
 19t. Icons: ⬆️ delta ≥ 2 | ⬇️ delta ≤ -2 | ➡️ delta within ±1
-20t. Show per-skill delta table for skills present in both analyses.
-21t. 1-2 sentence trend interpretation citing exact delta values. ±1 is not meaningful.
+20t. REQUIRED — output BOTH tables in this exact order:
+    TABLE 1 (main metrics) using overall_score / industry_growth_signal / market_demand_signal / skill_competitiveness from [TREND_DELTA]:
+    | 지표 | 이전 | 현재 | 변화 |
+    |------|------|------|------|
+    | Overall Score | prev | cur | ⬆️/⬇️/➡️ delta |
+    | Industry Growth | prev | cur | icon delta |
+    | Market Demand | prev | cur | icon delta |
+    | Skill Competitiveness | prev | cur | icon delta |
+    TABLE 2 (per-skill) using skill_deltas array from [TREND_DELTA]:
+    | 스킬 | 이전 | 현재 | 변화 |
+21t. 1-2 sentence trend interpretation citing exact delta values from [TREND_DELTA]. ±1 is not meaningful.
 
 EVIDENCE & REFERENCE RULES (CRITICAL):
 17. Every analytical statement MUST cite the exact numeric signal value as inline evidence.

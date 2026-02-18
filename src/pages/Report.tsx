@@ -46,6 +46,7 @@ export function Report({ tr, analysis, careerInput, report, reportLoading, gener
   const navigate = useNavigate();
   const savedRef = useRef(false);
   const initRef = useRef(false);
+  const restoredFromHistoryRef = useRef(false);
 
   // Payment gate: check credentials on mount, then trigger report generation
   useEffect(() => {
@@ -55,7 +56,10 @@ export function Report({ tr, analysis, careerInput, report, reportLoading, gener
     if (!analysis) return; // Guard - analysis checked in render below
 
     // If report is already in state (e.g., restored from history), skip the payment gate
-    if (report) return;
+    if (report) {
+      restoredFromHistoryRef.current = true; // mark as restored — do NOT re-save
+      return;
+    }
 
     const orderId = localStorage.getItem('cl_payment_order_id');
     const paymentType = localStorage.getItem('cl_payment_type') as 'one_time' | 'subscription' | null;
@@ -69,8 +73,9 @@ export function Report({ tr, analysis, careerInput, report, reportLoading, gener
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save to history once report is generated (only for logged-in users)
+  // Skip if this report was restored from history (already saved)
   useEffect(() => {
-    if (report && user && analysis && !savedRef.current) {
+    if (report && user && analysis && !savedRef.current && !restoredFromHistoryRef.current) {
       savedRef.current = true;
       saveAnalysisHistory(user.id, careerInput, analysis, report);
     }
