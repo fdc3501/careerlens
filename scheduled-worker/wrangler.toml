@@ -1,0 +1,15 @@
+name = "careerlens-email-scheduler"
+main = "index.ts"
+compatibility_date = "2024-11-01"
+
+# Cron: 매일 21:00 UTC = 06:00 KST
+[triggers]
+crons = ["0 21 * * *"]
+
+# 환경변수는 대시보드 또는 wrangler secret 으로 등록
+# wrangler secret put SUPABASE_URL
+# wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+# wrangler secret put RESEND_API_KEY
+# wrangler secret put APP_URL            (예: https://careerlens.pages.dev)
+# wrangler secret put EMAIL_FROM         (예: CareerLens <no-reply@careerlens.com>)
+# wrangler secret put OPENAI_API_KEY     (선택 — AI 업계 브리핑 생성 시 사용)
