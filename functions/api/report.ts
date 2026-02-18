@@ -350,7 +350,7 @@ async function verifyPayment(
   supabaseUrl: string,
   serviceRoleKey: string,
   authHeader: string,
-): Promise<{ ok: boolean; userId?: string; error?: string; status?: number }> {
+): Promise<{ ok: boolean; userId?: string; userEmail?: string; error?: string; status?: number }> {
   if (credential.paymentType === 'one_time') {
     // Validate order in Supabase
     const res = await fetch(
@@ -396,6 +396,7 @@ async function verifyPayment(
 
     const userData: any = await userRes.json();
     const userId: string = userData.id;
+    const userEmail: string = userData.email ?? '';
 
     // Check subscription status
     const profileRes = await fetch(
@@ -432,7 +433,7 @@ async function verifyPayment(
       return { ok: false, error: 'Daily report limit reached (1 per day)', status: 402 };
     }
 
-    return { ok: true, userId };
+    return { ok: true, userId, userEmail };
   }
 
   return { ok: false, error: 'Unknown payment type', status: 400 };
@@ -523,21 +524,42 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
     const cleaned = content.replace(/```json\n?|```\n?/g, '').trim();
     const report = JSON.parse(cleaned);
 
+    const sbHeaders = {
+      'Content-Type': 'application/json',
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      Prefer: 'return=minimal',
+    };
+
     // Mark one-time order as report generated
     if (body.credential.paymentType === 'one_time') {
       await fetch(
         `${supabaseUrl}/rest/v1/orders?polar_checkout_id=eq.${encodeURIComponent(body.credential.orderId)}`,
         {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-            Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-            Prefer: 'return=minimal',
-          },
+          headers: sbHeaders,
           body: JSON.stringify({ report_generated: true }),
         },
       );
+    }
+
+    // 구독 유저: 최신 커리어 데이터 upsert → 일일 이메일 발송용
+    if (
+      body.credential.paymentType === 'subscription' &&
+      paymentCheck.userId &&
+      paymentCheck.userEmail
+    ) {
+      await fetch(`${supabaseUrl}/rest/v1/subscriber_profiles?on_conflict=user_id`, {
+        method: 'POST',
+        headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify({
+          user_id: paymentCheck.userId,
+          email: paymentCheck.userEmail,
+          career_input: body.careerInput,
+          last_analysis: body.analysis,
+          updated_at: new Date().toISOString(),
+        }),
+      });
     }
 
     return Response.json(report);

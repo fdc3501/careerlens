@@ -148,6 +148,10 @@ const translations = {
       historyDeleted: '이력이 삭제되었습니다.',
       historyLoadError: '이력을 불러오지 못했습니다.',
       historySaveError: '이력 저장에 실패했습니다.',
+      emailNotifications: '일일 이메일 수신',
+      emailNotificationsDesc: '매일 아침 6시에 커리어 인사이트 이메일을 보내드립니다.',
+      emailEnabled: '수신 중',
+      emailDisabled: '수신 거부',
     },
     pricing: {
       title: '리포트 결제',
@@ -339,6 +343,10 @@ const translations = {
       historyDeleted: 'History deleted.',
       historyLoadError: 'Failed to load history.',
       historySaveError: 'Failed to save history.',
+      emailNotifications: 'Daily Email Digest',
+      emailNotificationsDesc: 'Receive career insights every morning at 6 AM.',
+      emailEnabled: 'Subscribed',
+      emailDisabled: 'Unsubscribed',
     },
     pricing: {
       title: 'Get Your Report',

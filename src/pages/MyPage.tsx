@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { LogOut, FileText, KeyRound, Trash2, Loader2, Clock, Eye } from 'lucide-react';
+import { LogOut, FileText, KeyRound, Trash2, Loader2, Clock, Eye, Mail } from 'lucide-react';
 import { fetchAnalysisHistory, deleteAnalysisHistory } from '../lib/history';
 import type { AnalysisHistoryRow } from '../lib/history';
 import type { Translations } from '../i18n';
@@ -13,7 +13,7 @@ interface MyPageProps {
 }
 
 export function MyPage({ tr, restoreFromHistory }: MyPageProps) {
-  const { user, signOut, updatePassword, deleteAccount } = useAuth();
+  const { user, session, signOut, updatePassword, deleteAccount } = useAuth();
   const navigate = useNavigate();
 
   const [newPassword, setNewPassword] = useState('');
@@ -25,9 +25,42 @@ export function MyPage({ tr, restoreFromHistory }: MyPageProps) {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const [emailEnabled, setEmailEnabled] = useState<boolean | null>(null);
+  const [emailToggling, setEmailToggling] = useState(false);
+
   const [history, setHistory] = useState<AnalysisHistoryRow[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState<string | null>(null);
+
+  // 이메일 수신 설정 로드
+  useEffect(() => {
+    if (!user || !session?.access_token) return;
+    fetch('/api/email-preferences', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setEmailEnabled(d.emailEnabled); })
+      .catch(() => {});
+  }, [user, session]);
+
+  const handleToggleEmail = async () => {
+    if (!session?.access_token || emailEnabled === null || emailToggling) return;
+    setEmailToggling(true);
+    const next = !emailEnabled;
+    try {
+      const res = await fetch('/api/email-preferences', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ emailEnabled: next }),
+      });
+      if (res.ok) setEmailEnabled(next);
+    } catch { /* ignore */ } finally {
+      setEmailToggling(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -135,6 +168,38 @@ export function MyPage({ tr, restoreFromHistory }: MyPageProps) {
           </button>
         </form>
       </div>
+
+      {/* Email Notifications */}
+      {emailEnabled !== null && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6 mb-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-slate-900 flex items-center gap-2 mb-1">
+                <Mail size={16} className="text-slate-500" />
+                {tr.auth.emailNotifications}
+              </h2>
+              <p className="text-sm text-slate-500">{tr.auth.emailNotificationsDesc}</p>
+            </div>
+            <button
+              onClick={handleToggleEmail}
+              disabled={emailToggling}
+              aria-label={emailEnabled ? tr.auth.emailEnabled : tr.auth.emailDisabled}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+                emailEnabled ? 'bg-primary' : 'bg-slate-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                  emailEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <p className={`text-xs mt-3 font-medium ${emailEnabled ? 'text-green-600' : 'text-slate-400'}`}>
+            {emailEnabled ? tr.auth.emailEnabled : tr.auth.emailDisabled}
+          </p>
+        </div>
+      )}
 
       {/* Analysis History */}
       <h2 className="text-lg font-semibold mb-4">{tr.auth.analysisHistory}</h2>

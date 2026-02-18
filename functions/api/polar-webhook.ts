@@ -120,6 +120,8 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       const email: string = data.customer?.email ?? '';
       const subId: string = data.id ?? '';
       const currentPeriodEnd: string | null = data.current_period_end ?? null;
+      // pending_session_key로 orders 테이블 업데이트 (free trial은 order.paid 미발생)
+      const pendingSessionKey: string = data.metadata?.pending_session_key ?? '';
 
       if (userId && subId) {
         await fetch(`${supabaseUrl}/rest/v1/subscriptions`, {
@@ -142,6 +144,19 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
             body: JSON.stringify({ subscription_status: 'active' }),
           },
         );
+
+        // free trial/결제 불필요 구독: order.paid 없이 subscription.created만 발생
+        // → pending_session_key로 orders 테이블을 succeeded로 업데이트
+        if (pendingSessionKey) {
+          await fetch(
+            `${supabaseUrl}/rest/v1/orders?metadata_pending_session_key=eq.${encodeURIComponent(pendingSessionKey)}`,
+            {
+              method: 'PATCH',
+              headers: sbHeaders,
+              body: JSON.stringify({ status: 'succeeded', polar_order_id: subId }),
+            },
+          );
+        }
       }
     } else if (eventType === 'subscription.updated') {
       const subId: string = data.id ?? '';
