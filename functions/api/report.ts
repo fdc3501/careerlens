@@ -66,18 +66,18 @@ STRICT RULES:
 TREND COMPARISON RULES (only when [PREVIOUS_ANALYSIS] and [TREND_DELTA] are present):
 17t. Insert "## 0️⃣ 트렌드 변화 분석" as the FIRST section in content (before section 1).
 18t. Always use EXACT numbers from [TREND_DELTA]. Never recalculate independently.
-19t. Icons: ⬆️ delta ≥ 2 | ⬇️ delta ≤ -2 | ➡️ delta within ±1
+19t. Icons (apply to ALL delta values): ⬆️ delta ≥ 6 | ⬇️ delta ≤ -6 | ➡️ delta within ±5 (measurement error range)
 20t. REQUIRED — output BOTH tables in this exact order:
     TABLE 1 (main metrics) — "이전" = values from [PREVIOUS_ANALYSIS], "현재" = values from [DECISION_SIGNALS], "변화" = delta from [TREND_DELTA] with icon:
     | 지표 | 이전 | 현재 | 변화 |
     |------|------|------|------|
-    | Overall Score | [PREVIOUS_ANALYSIS].overallScore | current overallScore | icon overall_score delta |
-    | Industry Growth | [PREVIOUS_ANALYSIS].techTrend | current techTrend | icon industry_growth_signal delta |
-    | Market Demand | [PREVIOUS_ANALYSIS].demandLevel | current demandLevel | icon market_demand_signal delta |
-    | Skill Competitiveness | prev avg skill | current avg skill | icon skill_competitiveness delta |
+    | Overall Score | [PREVIOUS_ANALYSIS].overallScore | current overallScore | icon ±delta |
+    | Industry Growth | [PREVIOUS_ANALYSIS].techTrend | current techTrend | icon ±delta |
+    | Market Demand | [PREVIOUS_ANALYSIS].demandLevel | current demandLevel | icon ±delta |
+    | Skill Competitiveness | prev avg skill score | current avg skill score | icon ±delta |
     TABLE 2 (per-skill) — "이전" = previous score from [PREVIOUS_ANALYSIS].skills, "현재" = current score, "변화" = delta from skill_deltas in [TREND_DELTA]:
     | 스킬 | 이전 | 현재 | 변화 |
-21t. 1-2 sentence trend interpretation citing exact delta values from [TREND_DELTA]. ±1 is not meaningful.
+21t. 1-2 sentence trend interpretation using [TREND_DELTA] values. ±5 이내 변화는 "측정 오차 범위 내" 로 해석. ±6 이상만 유의미한 변화로 언급.
 
 EVIDENCE & REFERENCE RULES (CRITICAL):
 17. Every analytical statement MUST cite the exact numeric signal value as inline evidence.

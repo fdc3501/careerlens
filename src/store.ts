@@ -115,7 +115,16 @@ export function useAppState() {
     if (pypiData) sources.push('PyPI API');
 
     const baseScore = Math.min(40 + expYears * 5 + skillList.length * 3, 95);
-    const variance = () => Math.floor(Math.random() * 10 - 5);
+
+    // Deterministic variance seeded from input — same resume = same base scores (±3 range)
+    const inputSeed = (input.jobTitle + input.skills + input.industry + input.experience)
+      .split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
+    let seedState = Math.abs(inputSeed) || 1;
+    const seededRand = () => {
+      seedState = (seedState * 1664525 + 1013904223) & 0x7fffffff;
+      return seedState / 0x7fffffff;
+    };
+    const variance = () => Math.floor(seededRand() * 6 - 3); // ±3 오차 범위
 
     // Build per-skill scores by aggregating available sources
     const skills = ghData.skills.map((gh, i) => {
