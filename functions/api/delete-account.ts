@@ -1,14 +1,13 @@
 interface Env {
-  SUPABASE_URL: string;
+  VITE_SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
 }
 
 export const onRequestPost = async (context: { request: Request; env: Env }) => {
   const { request, env } = context;
 
-  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
-    const availableKeys = Object.keys(env as unknown as object);
-    return Response.json({ error: 'Supabase not configured', availableKeys }, { status: 500 });
+  if (!env.VITE_SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    return Response.json({ error: 'Supabase not configured' }, { status: 500 });
   }
 
   const authHeader = request.headers.get('Authorization');
@@ -19,7 +18,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
   const jwt = authHeader.slice(7);
 
   // Verify JWT and get user info
-  const userRes = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+  const userRes = await fetch(`${env.VITE_SUPABASE_URL}/auth/v1/user`, {
     headers: {
       Authorization: `Bearer ${jwt}`,
       apikey: env.SUPABASE_SERVICE_ROLE_KEY,
@@ -34,7 +33,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
 
   // Delete user via Supabase Admin API (requires service role key)
   const deleteRes = await fetch(
-    `${env.SUPABASE_URL}/auth/v1/admin/users/${user.id}`,
+    `${env.VITE_SUPABASE_URL}/auth/v1/admin/users/${user.id}`,
     {
       method: 'DELETE',
       headers: {
